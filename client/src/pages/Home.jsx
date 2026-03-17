@@ -1,113 +1,157 @@
 import React, { useState } from 'react'
-import FilterBar from '../components/FilterBar'
-import IdeaCard from '../components/IdeaCard'
-
-// ── Temporary hard-coded ideas for now ──
-// We'll replace this with real API data in Phase 4
-const TEMP_IDEAS = [
-  {
-    _id: '1',
-    title: 'Personal Finance Tracker',
-    description: 'A web app to track your income, expenses, and savings goals with visual charts.',
-    difficulty: 'Beginner',
-    stack: ['React', 'Node', 'Express', 'MongoDB'],
-    category: 'Web',
-    features: ['Add income and expense entries', 'View monthly summary', 'Simple pie chart', 'Delete or edit entries'],
-    bonusChallenges: ['Add user authentication', 'Export data as CSV', 'Set monthly budget limits']
-  },
-  {
-    _id: '2',
-    title: 'AI Recipe Generator',
-    description: 'Enter ingredients you have and get AI-powered recipe suggestions.',
-    difficulty: 'Intermediate',
-    stack: ['React', 'Node', 'Express', 'OpenAI API'],
-    category: 'AI',
-    features: ['Input multiple ingredients', 'Fetch recipe from OpenAI', 'Display recipe with steps', 'Save favourites'],
-    bonusChallenges: ['Add dietary filter', 'Generate a shopping list', 'Rate and review recipes']
-  },
-  {
-    _id: '3',
-    title: 'Multiplayer Quiz Game',
-    description: 'A real-time quiz game where players compete in live rooms.',
-    difficulty: 'Advanced',
-    stack: ['React', 'Node', 'Express', 'Socket.io'],
-    category: 'Game',
-    features: ['Create and join rooms', 'Real-time score updates', 'Timer per question', 'Leaderboard'],
-    bonusChallenges: ['Custom question sets', 'Voice countdown', 'Spectator mode']
-  }
-]
+import FilterBar    from '../components/FilterBar'
+import IdeaCard     from '../components/IdeaCard'
+import useIdeas     from '../hooks/useIdeas'
+import useRandomIdea from '../hooks/useRandomIdea'
+import useAIIdea    from '../hooks/useAIIdea'
 
 function Home() {
-  const [filters, setFilters]         = useState({})
-  const [randomIdea, setRandomIdea]   = useState(null)
-
-  // Filter ideas based on selected filters
-  const filteredIdeas = TEMP_IDEAS.filter(idea => {
-    if (filters.difficulty && idea.difficulty !== filters.difficulty) return false
-    if (filters.category   && idea.category   !== filters.category)   return false
-    if (filters.stack      && !idea.stack.includes(filters.stack))    return false
-    return true
+  const [filters, setFilters] = useState({
+    difficulty: '',
+    category: '',
+    stack: ''
   })
 
-  // Pick a random idea from filtered list
-  const handleRandom = () => {
-    const pool = filteredIdeas.length > 0 ? filteredIdeas : TEMP_IDEAS
-    const pick = pool[Math.floor(Math.random() * pool.length)]
-    setRandomIdea(pick)
+  // ── Hooks ──
+  const { ideas, loading, error }              = useIdeas(filters)
+  const { randomIdea, loading: randomLoading,
+          fetchRandom, clearRandom }           = useRandomIdea()
+  const { aiIdea, loading: aiLoading,
+          generateIdea, clearAI }              = useAIIdea()
+
+  // Only one "special" mode active at a time
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters)
+    clearRandom()
+    clearAI()
   }
 
-  // Which ideas to show
-  const ideasToShow = randomIdea ? [randomIdea] : filteredIdeas
+  const handleRandom = () => {
+    clearAI()
+    fetchRandom(filters)
+  }
+
+  const handleGenerate = () => {
+    clearRandom()
+    generateIdea(filters)
+  }
+
+  // Decide what to show
+  const isLoading    = loading || randomLoading || aiLoading
+  const activeIdea   = aiIdea || randomIdea
+  const ideasToShow  = activeIdea ? [activeIdea] : ideas
+
+  const resultLabel = aiIdea
+    ? '✨ AI Generated Idea'
+    : randomIdea
+    ? '🎲 Random pick for you'
+    : isLoading
+    ? 'Loading...'
+    : `${ideasToShow.length} idea${ideasToShow.length !== 1 ? 's' : ''} found`
 
   return (
     <div style={styles.page}>
 
-      {/* ── Header ── */}
+      {/* ── Hero Header ── */}
       <header style={styles.header}>
         <div style={styles.headerInner}>
-          <div style={styles.logo}>💡 DevIdeas</div>
+          <div style={styles.logoBadge}>✨ AI Powered</div>
+          <h1 style={styles.logo}>💡 DevIdeas</h1>
           <p style={styles.tagline}>
-            Find your next project. Filter by stack, difficulty, and category.
+            Discover real-world project ideas tailored to your stack and skill level.
+            <br />
+            <span style={{ color: 'var(--accent2)' }}>
+              Powered by Claude AI — fresh ideas every time.
+            </span>
           </p>
+
+          {/* ── Stats Row ── */}
+          <div style={styles.statsRow}>
+            <div style={styles.stat}>
+              <span style={styles.statNum}>{ideas.length}+</span>
+              <span style={styles.statLabel}>Curated Ideas</span>
+            </div>
+            <div style={styles.statDivider} />
+            <div style={styles.stat}>
+              <span style={styles.statNum}>∞</span>
+              <span style={styles.statLabel}>AI Ideas</span>
+            </div>
+            <div style={styles.statDivider} />
+            <div style={styles.stat}>
+              <span style={styles.statNum}>6</span>
+              <span style={styles.statLabel}>Categories</span>
+            </div>
+          </div>
         </div>
       </header>
 
-      {/* ── Main Content ── */}
+      {/* ── Main ── */}
       <main style={styles.main}>
 
         <FilterBar
           filters={filters}
-          setFilters={(val) => { setFilters(val); setRandomIdea(null) }}
+          setFilters={handleFilterChange}
           onRandom={handleRandom}
+          onGenerate={handleGenerate}
+          isGenerating={aiLoading}
         />
 
-        {/* ── Results Info ── */}
+        {/* ── Results Row ── */}
         <div style={styles.resultsRow}>
-          <span style={styles.resultsText}>
-            {randomIdea
-              ? '🎲 Random pick for you'
-              : `${ideasToShow.length} idea${ideasToShow.length !== 1 ? 's' : ''} found`
-            }
-          </span>
-          {randomIdea && (
+          <span style={styles.resultsText}>{resultLabel}</span>
+          {activeIdea && (
             <button
               style={styles.clearBtn}
-              onClick={() => setRandomIdea(null)}
+              onClick={() => { clearRandom(); clearAI() }}
             >
               ✕ Show all
             </button>
           )}
         </div>
 
-        {/* ── Cards Grid ── */}
-        {ideasToShow.length === 0 ? (
-          <div style={styles.empty}>
-            <p>😕 No ideas match your filters.</p>
-            <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
-              Try changing or clearing the filters.
+        {/* ── AI Loading State ── */}
+        {aiLoading && (
+          <div style={styles.aiLoading}>
+            <div style={styles.aiPulse}>✨</div>
+            <p style={styles.aiLoadingText}>
+              Claude is thinking of a real-world idea for you...
             </p>
           </div>
-        ) : (
+        )}
+
+        {/* ── Regular Loading ── */}
+        {loading && !aiLoading && (
+          <div style={styles.center}>
+            <div style={styles.spinner} />
+            <p style={{ color: 'var(--muted)', marginTop: '16px' }}>
+              Fetching ideas...
+            </p>
+          </div>
+        )}
+
+        {/* ── Error State ── */}
+        {(error) && !isLoading && (
+          <div style={styles.errorBox}>
+            <p>⚠️ {error}</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: '8px' }}>
+              Make sure your backend server is running on port 5000.
+            </p>
+          </div>
+        )}
+
+        {/* ── Empty State ── */}
+        {!isLoading && !error && ideasToShow.length === 0 && (
+          <div style={styles.empty}>
+            <p style={{ fontSize: '2.5rem' }}>🔍</p>
+            <p style={{ fontWeight: '600' }}>No ideas match your filters</p>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem' }}>
+              Try the ✨ Generate with AI button for a custom idea!
+            </p>
+          </div>
+        )}
+
+        {/* ── Ideas Grid ── */}
+        {!isLoading && ideasToShow.length > 0 && (
           <div style={styles.grid}>
             {ideasToShow.map(idea => (
               <IdeaCard key={idea._id} idea={idea} />
@@ -116,6 +160,12 @@ function Home() {
         )}
 
       </main>
+
+      {/* ── Footer ── */}
+      <footer style={styles.footer}>
+        <p>Built with 💜 using MERN + Claude AI</p>
+      </footer>
+
     </div>
   )
 }
@@ -123,33 +173,79 @@ function Home() {
 const styles = {
   page: {
     minHeight: '100vh',
-    background: 'var(--bg)'
+    background: 'var(--bg)',
+    display: 'flex',
+    flexDirection: 'column'
   },
   header: {
     borderBottom: '1px solid var(--border)',
-    padding: '40px 24px 32px',
-    background: 'var(--surface)'
+    padding: '48px 24px 40px',
+    background: 'var(--surface)',
+    textAlign: 'center'
   },
   headerInner: {
-    maxWidth: '1100px',
+    maxWidth: '700px',
     margin: '0 auto'
   },
+  logoBadge: {
+    display: 'inline-block',
+    background: 'var(--accent)22',
+    color: 'var(--accent)',
+    border: '1px solid var(--accent)44',
+    borderRadius: '999px',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    padding: '4px 14px',
+    marginBottom: '16px',
+    letterSpacing: '0.05em'
+  },
   logo: {
-    fontSize: '1.8rem',
+    fontSize: '2.5rem',
     fontWeight: '800',
-    marginBottom: '8px',
+    marginBottom: '12px',
     background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent'
   },
   tagline: {
     color: 'var(--muted)',
-    fontSize: '1rem'
+    fontSize: '1rem',
+    lineHeight: '1.8',
+    marginBottom: '32px'
+  },
+  statsRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '24px'
+  },
+  stat: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '4px'
+  },
+  statNum: {
+    fontSize: '1.5rem',
+    fontWeight: '800',
+    color: 'var(--text)'
+  },
+  statLabel: {
+    fontSize: '0.75rem',
+    color: 'var(--muted)',
+    fontWeight: '500'
+  },
+  statDivider: {
+    width: '1px',
+    height: '32px',
+    background: 'var(--border)'
   },
   main: {
     maxWidth: '1100px',
     margin: '0 auto',
-    padding: '32px 24px'
+    padding: '32px 24px',
+    flex: 1,
+    width: '100%'
   },
   resultsRow: {
     display: 'flex',
@@ -159,7 +255,8 @@ const styles = {
   },
   resultsText: {
     color: 'var(--muted)',
-    fontSize: '0.9rem'
+    fontSize: '0.9rem',
+    fontWeight: '500'
   },
   clearBtn: {
     background: 'transparent',
@@ -174,6 +271,43 @@ const styles = {
     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
     gap: '24px'
   },
+  center: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '80px 0'
+  },
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '3px solid var(--border)',
+    borderTop: '3px solid var(--accent)',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite'
+  },
+  aiLoading: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '80px 0',
+    gap: '16px'
+  },
+  aiPulse: {
+    fontSize: '3rem',
+    animation: 'spin 2s linear infinite'
+  },
+  aiLoadingText: {
+    color: 'var(--muted)',
+    fontSize: '1rem'
+  },
+  errorBox: {
+    background: '#ef444422',
+    border: '1px solid #ef444444',
+    borderRadius: 'var(--radius)',
+    padding: '24px',
+    color: '#ef4444',
+    textAlign: 'center'
+  },
   empty: {
     textAlign: 'center',
     padding: '80px 0',
@@ -182,6 +316,13 @@ const styles = {
     gap: '8px',
     alignItems: 'center',
     color: 'var(--text)'
+  },
+  footer: {
+    textAlign: 'center',
+    padding: '24px',
+    color: 'var(--muted)',
+    fontSize: '0.85rem',
+    borderTop: '1px solid var(--border)'
   }
 }
 

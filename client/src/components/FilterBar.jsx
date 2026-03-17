@@ -4,7 +4,7 @@ const difficulties = ['All', 'Beginner', 'Intermediate', 'Advanced']
 const categories   = ['All', 'Web', 'AI', 'Mobile', 'Game', 'CLI', 'API']
 const stacks       = ['All', 'React', 'Node', 'MongoDB', 'Python', 'Socket.io', 'OpenAI API']
 
-function FilterBar({ filters, setFilters, onRandom }) {
+function FilterBar({ filters, setFilters, onRandom, onGenerate, isGenerating }) {
 
   const handleChange = (key, value) => {
     setFilters(prev => ({
@@ -16,7 +16,7 @@ function FilterBar({ filters, setFilters, onRandom }) {
   return (
     <div style={styles.wrapper}>
 
-      {/* ── Filter Selects ── */}
+      {/* ── Filters ── */}
       <div style={styles.filters}>
 
         <div style={styles.group}>
@@ -60,10 +60,27 @@ function FilterBar({ filters, setFilters, onRandom }) {
 
       </div>
 
-      {/* ── Surprise Me Button ── */}
-      <button onClick={onRandom} style={styles.surpriseBtn}>
-        🎲 Surprise Me
-      </button>
+      {/* ── Buttons ── */}
+      <div style={styles.buttons}>
+
+        {/* Surprise Me — from DB */}
+        <button onClick={onRandom} style={styles.surpriseBtn}>
+          🎲 Surprise Me
+        </button>
+
+        {/* Generate with AI */}
+        <button
+          onClick={onGenerate}
+          disabled={isGenerating}
+          style={{
+            ...styles.aiBtn,
+            opacity: isGenerating ? 0.7 : 1
+          }}
+        >
+          {isGenerating ? '⏳ Generating...' : '✨ Generate with AI'}
+        </button>
+
+      </div>
 
     </div>
   )
@@ -110,7 +127,21 @@ const styles = {
     cursor: 'pointer',
     minWidth: '150px'
   },
+  buttons: {
+    display: 'flex',
+    gap: '12px',
+    flexWrap: 'wrap'
+  },
   surpriseBtn: {
+    padding: '10px 20px',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    color: 'var(--text)',
+    fontWeight: '600',
+    fontSize: '0.9rem'
+  },
+  aiBtn: {
     padding: '10px 22px',
     background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
     border: 'none',

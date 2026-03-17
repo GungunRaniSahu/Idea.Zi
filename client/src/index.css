@@ -43,3 +43,8 @@ button {
   background: var(--border);
   border-radius: 10px;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

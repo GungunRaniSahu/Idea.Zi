@@ -1,12 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const { getIdeas, getRandomIdea } = require('../controllers/ideaController');
+const express = require('express')
+const router  = express.Router()
+const { getIdeas, getRandomIdea }  = require('../controllers/ideaController')
+const { generateAIIdea }           = require('../controllers/aiController')
 
-// GET /api/ideas         → fetch all ideas (with optional filters)
-// GET /api/ideas?difficulty=Beginner&category=Web
-router.get('/', getIdeas);
+// GET /api/ideas           → all ideas with filters
+router.get('/',        getIdeas)
 
-// GET /api/ideas/random  → fetch one random idea
-router.get('/random', getRandomIdea);
+// GET /api/ideas/random    → one random idea from DB
+router.get('/random',  getRandomIdea)
 
-module.exports = router;
+// GET /api/ideas/ai        → one AI generated idea
+router.get('/ai',      generateAIIdea)
+
+module.exports = router
