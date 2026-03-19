@@ -3,21 +3,27 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-const ideaRoutes = require('./routes/ideaRoutes'); // 👈 Add this
+const ideaRoutes = require('./routes/ideaRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// ── CORS — allow local dev + Vercel production ──
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://idea-zi.vercel.app'    // 👈 replace with YOUR vercel URL
+  ]
+}));
+
 app.use(express.json());
 
 // Routes
-app.use('/api/ideas', ideaRoutes); // 👈 Add this
+app.use('/api/ideas', ideaRoutes);
 
 // Test route
 app.get('/', (req, res) => {
-  res.json({ message: '🚀 Dev Idea Generator API is running!' });
+  res.json({ message: '🚀 Idea.Zi API is running!' });
 });
 
 // Connect to MongoDB and start server
